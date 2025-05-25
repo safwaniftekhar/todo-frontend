@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +13,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getApi } from "@/app/api/api";
-// import { getApi } from "@/lib/api"; // Replace with your actual API utility
-
+import { deleteApi, getApi, patchApi } from "@/app/api/api";
+import Swal from "sweetalert2";
 interface Collaborator {
   membershipId: string;
   userId: string;
@@ -30,36 +25,88 @@ interface Collaborator {
 
 interface CollaboratorsListProps {
   appId: string;
-  handleChangeRole: (membershipId: string, role: "editor" | "viewer") => void;
-  handleRemoveCollaborator: (membershipId: string) => void;
 }
 
 export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
   appId,
-  handleChangeRole,
-  handleRemoveCollaborator,
 }) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
-  useEffect(() => {
-    const fetchCollaborators = async () => {
-      try {
-        const response = await getApi(`memberships/${appId}`);
-        const formatted = response.map((member: any) => ({
-          membershipId: member.id,
-          userId: member.user.id,
-          email: member.user.email,
-          name: member.user.email.split("@")[0], // fallback name
-          role: member.role.toLowerCase(), // normalize "EDITOR" -> "editor"
-        }));
-        setCollaborators(formatted);
-      } catch (error) {
-        console.error("Failed to fetch collaborators:", error);
-      }
-    };
+  const fetchCollaborators = async () => {
+    try {
+      const response = await getApi(`memberships/${appId}`);
+      const formatted = response.map((member: any) => ({
+        membershipId: member.id,
+        userId: member.user.id,
+        email: member.user.email,
+        name: member.user.email.split("@")[0], // fallback name
+        role: member.role.toLowerCase(), // normalize "EDITOR" -> "editor"
+      }));
+      setCollaborators(formatted);
+    } catch (error) {
+      console.error("Failed to fetch collaborators:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchCollaborators();
   }, [appId]);
+
+  const handleChangeRole = async (
+    membershipId: string,
+    role: "editor" | "viewer"
+  ) => {
+    try {
+      await patchApi(`memberships/${appId}/${membershipId}`, {
+        role: role.toUpperCase(),
+      });
+
+      Swal.fire({
+        icon: "success",
+        title: "Role updated",
+        text: `The role has been changed to ${role}.`,
+      });
+
+      // Refresh list
+      fetchCollaborators();
+    } catch (error) {
+      console.error("Error updating role:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Failed to update role",
+        text: "Please try again later.",
+      });
+    }
+  };
+
+  const handleRemoveCollaborator = async (membershipId: string) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "This will remove the collaborator from this project.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, remove",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await deleteApi(`memberships/${appId}/${membershipId}`);
+      Swal.fire({
+        icon: "success",
+        title: "Removed",
+        text: "The collaborator has been removed.",
+      });
+      fetchCollaborators();
+    } catch (error) {
+      console.error("Failed to remove collaborator:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Removal failed",
+        text: "Could not remove the collaborator.",
+      });
+    }
+  };
 
   return (
     <Card>
@@ -92,7 +139,10 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                     <Select
                       value={user.role}
                       onValueChange={(value) =>
-                        handleChangeRole(user.membershipId, value as "editor" | "viewer")
+                        handleChangeRole(
+                          user.membershipId,
+                          value as "editor" | "viewer"
+                        )
                       }
                     >
                       <SelectTrigger className="w-[110px]">
@@ -106,7 +156,9 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemoveCollaborator(user.membershipId)}
+                      onClick={() =>
+                        handleRemoveCollaborator(user.membershipId)
+                      }
                     >
                       <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>

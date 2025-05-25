@@ -472,8 +472,6 @@ export default function TodoDetail() {
           <TabsContent value="collaborators">
             <CollaboratorsList
               appId={id}
-              handleChangeRole={handleChangeRole}
-              handleRemoveCollaborator={handleRemoveCollaborator}
             />
           </TabsContent>
         </Tabs>
