@@ -15,6 +15,7 @@ import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { deleteApi, getApi, patchApi } from "@/app/api/api";
 import Swal from "sweetalert2";
+import { Spin } from "antd";
 interface Collaborator {
   membershipId: string;
   userId: string;
@@ -31,9 +32,11 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
   appId,
 }) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchCollaborators = async () => {
     try {
+      setIsLoading(true);
       const response = await getApi(`memberships/${appId}`);
       const formatted = response.map((member: any) => ({
         membershipId: member.id,
@@ -43,7 +46,10 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
         role: member.role.toLowerCase(), // normalize "EDITOR" -> "editor"
       }));
       setCollaborators(formatted);
+      setIsLoading(false);
     } catch (error) {
+      setIsLoading(false);
+
       console.error("Failed to fetch collaborators:", error);
     }
   };
@@ -57,6 +63,8 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
     role: "editor" | "viewer"
   ) => {
     try {
+      setIsLoading(true);
+
       await patchApi(`memberships/${appId}/${membershipId}`, {
         role: role.toUpperCase(),
       });
@@ -68,6 +76,8 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
       });
 
       // Refresh list
+      setIsLoading(false);
+
       fetchCollaborators();
     } catch (error) {
       console.error("Error updating role:", error);
@@ -91,12 +101,16 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
     if (!confirm.isConfirmed) return;
 
     try {
+      setIsLoading(true);
+
       await deleteApi(`memberships/${appId}/${membershipId}`);
       Swal.fire({
         icon: "success",
         title: "Removed",
         text: "The collaborator has been removed.",
       });
+      setIsLoading(false);
+
       fetchCollaborators();
     } catch (error) {
       console.error("Failed to remove collaborator:", error);
@@ -105,70 +119,73 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
         title: "Removal failed",
         text: "Could not remove the collaborator.",
       });
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        <div className="space-y-4">
-          {collaborators.map((user) => (
-            <div
-              key={user.membershipId}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback>
-                    {user.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {user.email}
+    <Spin spinning={isLoading}>
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="space-y-4">
+            {collaborators.map((user) => (
+              <div
+                key={user.membershipId}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src="/placeholder.svg" />
+                    <AvatarFallback>
+                      {user.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {user.email}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  {user.role === "owner" ? (
+                    <Badge>Owner</Badge>
+                  ) : (
+                    <>
+                      <Select
+                        value={user.role}
+                        onValueChange={(value) =>
+                          handleChangeRole(
+                            user.membershipId,
+                            value as "editor" | "viewer"
+                          )
+                        }
+                      >
+                        <SelectTrigger className="w-[110px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleRemoveCollaborator(user.membershipId)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                {user.role === "owner" ? (
-                  <Badge>Owner</Badge>
-                ) : (
-                  <>
-                    <Select
-                      value={user.role}
-                      onValueChange={(value) =>
-                        handleChangeRole(
-                          user.membershipId,
-                          value as "editor" | "viewer"
-                        )
-                      }
-                    >
-                      <SelectTrigger className="w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        handleRemoveCollaborator(user.membershipId)
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </Spin>
   );
 };

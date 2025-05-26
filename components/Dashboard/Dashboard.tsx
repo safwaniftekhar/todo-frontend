@@ -27,11 +27,14 @@ import Header from "@/components/shared/Header";
 import { createApi, deleteApi, getApi } from "@/app/api/api";
 import { getSubFromJWT } from "@/app/utils/utils";
 import Swal from "sweetalert2";
+import NotificationsClient from "../NotificationsClient";
+import { Spin } from "antd";
 
 const Dashboard = () => {
   const [todoLists, setTodoLists] = useState<any[]>([]);
   const [newListTitle, setNewListTitle] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Rename state
   const [renamingList, setRenamingList] = useState<any | null>(null);
@@ -45,6 +48,7 @@ const Dashboard = () => {
     if (!newListTitle.trim()) return;
 
     try {
+      setIsLoading(true);
       const payload = { name: newListTitle };
       const response = await createApi("todo-apps", payload);
 
@@ -52,6 +56,7 @@ const Dashboard = () => {
         Swal.fire("Created!", "New List Created!", "success");
         setNewListTitle("");
         setIsDialogOpen(false);
+        setIsLoading(false);
         fetchData(); // Refresh the list from backend
       } else {
         Swal.fire("Error!", "Failed to create list!", "error");
@@ -64,6 +69,7 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      setIsLoading(true);
       const response = await getApi("todo-apps");
       if (Array.isArray(response)) {
         const formatted = response.map((item: any) => ({
@@ -72,14 +78,19 @@ const Dashboard = () => {
           ownerId: item?.ownerId,
         }));
         setTodoLists(formatted);
+        setIsLoading(false);
       }
     } catch (error) {
+      setIsLoading(false);
+
       console.error("Failed to fetch todo lists:", error);
     }
   };
 
   // Inside the Dashboard component
   const handleDeleteList = async (listId: string) => {
+    setIsLoading(true);
+
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -94,6 +105,8 @@ const Dashboard = () => {
 
     try {
       await deleteApi(`todo-apps/${listId}`);
+      setIsLoading(false);
+
       await fetchData();
       Swal.fire("Deleted!", "Your list has been deleted.", "success");
     } catch (error) {
@@ -107,82 +120,87 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">My ToDo Lists</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New List
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New ToDo List</DialogTitle>
-                <DialogDescription>
-                  Give your new ToDo list a name to get started.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="list-title">List Title</Label>
-                  <Input
-                    id="list-title"
-                    value={newListTitle}
-                    onChange={(e) => setNewListTitle(e.target.value)}
-                    placeholder="e.g., Project Tasks"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
+    <Spin spinning={isLoading}>
+      <div className="flex min-h-screen flex-col p-4">
+        <Header />
+        <main className="flex-1 container py-6">
+          {/* <NotificationsClient userId={userId} /> */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">My ToDo Lists</h1>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New List
                 </Button>
-                <Button onClick={handleCreateList}>Create List</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New ToDo List</DialogTitle>
+                  <DialogDescription>
+                    Give your new ToDo list a name to get started.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="list-title">List Title</Label>
+                    <Input
+                      id="list-title"
+                      value={newListTitle}
+                      onChange={(e) => setNewListTitle(e.target.value)}
+                      placeholder="e.g., Project Tasks"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateList} disabled={isLoading}>
+                    Create List
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {todoLists.map((list) => (
-            <Card
-              key={list.id}
-              className="h-full hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <Link href={`/todo/${list.id}`}>
-                  <CardTitle>{list.title}</CardTitle>
-                </Link>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      disabled={list?.ownerId !== userId}
-                      className="text-destructive"
-                      onClick={() => handleDeleteList(list.id)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </main>
-    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {todoLists.map((list) => (
+              <Card
+                key={list.id}
+                className="h-full hover:shadow-md transition-shadow"
+              >
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <Link href={`/todo/${list.id}`}>
+                    <CardTitle>{list.title}</CardTitle>
+                  </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        disabled={list?.ownerId !== userId}
+                        className="text-destructive"
+                        onClick={() => handleDeleteList(list.id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </main>
+      </div>
+    </Spin>
   );
 };
 

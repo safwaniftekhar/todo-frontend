@@ -1,3 +1,4 @@
+import Swal from "sweetalert2";
 import { apiBaseUrl, apiKey } from "../utils/env";
 
 interface LoginValues {
@@ -170,34 +171,22 @@ export const getApi = async (uri: string) => {
 };
 
 export const createApi = async (uri: string, body: Record<string, any>) => {
-  try {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      throw new Error("Access token not found");
-    }
-
-    const response = await fetch(`${apiBaseUrl}/${uri}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "API request failed");
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error calling CREATE API:", error);
-    return null;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("Access token not found");
   }
-};
 
+  const response = await fetch(`${apiBaseUrl}/${uri}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  return response;
+};
 
 export const patchApi = async (uri: string, body: Record<string, any>) => {
   try {
@@ -256,8 +245,6 @@ export const deleteApi = async (uri: string) => {
     return null;
   }
 };
-
-
 
 export const deleteMission = async (uri: string) => {
   try {

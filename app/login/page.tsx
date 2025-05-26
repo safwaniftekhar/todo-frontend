@@ -17,22 +17,37 @@ export default function LoginPage() {
 
   const onFinish = async (values: { email: string; password: string }) => {
     setIsLoading(true);
+
     try {
       const payload = {
         email: values?.email,
         password: values?.password,
       };
+
       const response = await postSignUp("auth/login", payload);
       const data = await response?.json();
-      // return
+
       if (response?.ok) {
         console.log("data.access_token", data.access_token);
         localStorage.setItem("access_token", data.access_token);
         router.push("/dashboard");
-        console.log("data", data);
+        setIsLoading(false);
+      } else {
+        // Show the API error message if available
+        Swal.fire(
+          "Error!",
+          data?.message || "Failed to sign up. Please try again.",
+          "error"
+        );
+        setIsLoading(false);
       }
     } catch (error) {
-      Swal.fire("Error!", "Failed to login. Please try again.", "error");
+      Swal.fire(
+        "Error!",
+        "Something went wrong. Please try again later.",
+        "error"
+      );
+      setIsLoading(false);
     }
   };
 
