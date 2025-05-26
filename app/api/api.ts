@@ -189,61 +189,39 @@ export const createApi = async (uri: string, body: Record<string, any>) => {
 };
 
 export const patchApi = async (uri: string, body: Record<string, any>) => {
-  try {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      throw new Error("Access token not found");
-    }
-
-    const response = await fetch(`${apiBaseUrl}/${uri}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "API request failed");
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error calling PATCH API:", error);
-    return null;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("Access token not found");
   }
+
+  const response = await fetch(`${apiBaseUrl}/${uri}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  return response;
 };
 
 export const deleteApi = async (uri: string) => {
-  try {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      throw new Error("Access token not found");
-    }
-
-    const response = await fetch(`${apiBaseUrl}/${uri}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "API request failed");
-    }
-
-    // Optional: return a success message or response content
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error calling DELETE API:", error);
-    return null;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("Access token not found");
   }
+
+  const response = await fetch(`${apiBaseUrl}/${uri}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  // Optional: return a success message or response content
+  return response;
 };
 
 export const deleteMission = async (uri: string) => {

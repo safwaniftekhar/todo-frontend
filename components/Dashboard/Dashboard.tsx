@@ -52,7 +52,7 @@ const Dashboard = () => {
       const payload = { name: newListTitle };
       const response = await createApi("todo-apps", payload);
 
-      if (response) {
+      if (response?.ok) {
         Swal.fire("Created!", "New List Created!", "success");
         setNewListTitle("");
         setIsDialogOpen(false);
@@ -104,11 +104,15 @@ const Dashboard = () => {
     if (!result.isConfirmed) return;
 
     try {
-      await deleteApi(`todo-apps/${listId}`);
-      setIsLoading(false);
+      let response = await deleteApi(`todo-apps/${listId}`);
+      if (response?.ok) {
+        setIsLoading(false);
 
-      await fetchData();
-      Swal.fire("Deleted!", "Your list has been deleted.", "success");
+        await fetchData();
+        Swal.fire("Deleted!", "Your list has been deleted.", "success");
+      } else{
+        Swal.fire("Error!", "Something went wrong", "error");
+      }
     } catch (error) {
       console.error("Failed to delete list:", error);
       Swal.fire("Error!", "Failed to delete the list.", "error");

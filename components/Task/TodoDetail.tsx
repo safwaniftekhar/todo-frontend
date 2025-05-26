@@ -122,10 +122,15 @@ export default function TodoDetail() {
     if (!result.isConfirmed) return;
 
     try {
-      await deleteApi(`tasks/${taskId}`);
-      setIsLoading(false);
-      await fetchData();
-      Swal.fire("Deleted!", "Task has been deleted.", "success");
+      let response = await deleteApi(`tasks/${taskId}`);
+      if (response?.ok) {
+        setIsLoading(false);
+        await fetchData();
+        Swal.fire("Deleted!", "Task has been deleted.", "success");
+      } else {
+        Swal.fire("Error!", "Something went wrong", "error");
+        setIsLoading(false);
+      }
     } catch (error) {
       setIsLoading(false);
       console.error("Failed to delete list:", error);
@@ -177,11 +182,15 @@ export default function TodoDetail() {
         dueDate: new Date(dueDate).toISOString(),
       };
 
-      const createdTask = await createApi(`tasks/${id}`, body);
+      const response = await createApi(`tasks/${id}`, body);
 
-      if (createdTask) {
+      if (response?.ok) {
         setIsLoading(false);
+        Swal.fire("Created!", "New Task Created!", "success");
         fetchData();
+      } else {
+        Swal.fire("Error!", "Failed to create task!", "error");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Failed to add task:", error);
@@ -498,14 +507,21 @@ export default function TodoDetail() {
                     setIsLoading(true);
                     e.preventDefault();
                     try {
-                      await patchApi(`tasks/${editingTask.id}`, {
+                      let response = await patchApi(`tasks/${editingTask.id}`, {
                         title: editingTask.title,
                         dueDate: new Date(editingTask.dueDate!).toISOString(),
                         priority: editingTask.priority,
                       });
-                      setIsLoading(false);
-                      setEditingTask(null);
-                      fetchData();
+                      if (response?.ok) {
+                        setIsLoading(false);
+                        setEditingTask(null);
+                        fetchData();
+                        Swal.fire("Success!", "Task Edited.", "success");
+                      } else {
+                        setIsLoading(false);
+
+                        Swal.fire("Error!", "Something went wrong", "error");
+                      }
                     } catch (error) {
                       setIsLoading(false);
 

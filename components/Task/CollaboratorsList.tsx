@@ -65,20 +65,23 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
     try {
       setIsLoading(true);
 
-      await patchApi(`memberships/${appId}/${membershipId}`, {
+      let response = await patchApi(`memberships/${appId}/${membershipId}`, {
         role: role.toUpperCase(),
       });
 
-      Swal.fire({
-        icon: "success",
-        title: "Role updated",
-        text: `The role has been changed to ${role}.`,
-      });
+      if (response?.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Role updated",
+          text: `The role has been changed to ${role}.`,
+        });
+        setIsLoading(false);
 
-      // Refresh list
-      setIsLoading(false);
-
-      fetchCollaborators();
+        fetchCollaborators();
+      } else {
+        setIsLoading(false);
+        Swal.fire("Error!", "Something went wrong", "error");
+      }
     } catch (error) {
       console.error("Error updating role:", error);
       Swal.fire({
@@ -103,15 +106,20 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
     try {
       setIsLoading(true);
 
-      await deleteApi(`memberships/${appId}/${membershipId}`);
-      Swal.fire({
-        icon: "success",
-        title: "Removed",
-        text: "The collaborator has been removed.",
-      });
-      setIsLoading(false);
+      let response = await deleteApi(`memberships/${appId}/${membershipId}`);
+      if (response?.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Removed",
+          text: "The collaborator has been removed.",
+        });
+        setIsLoading(false);
 
-      fetchCollaborators();
+        fetchCollaborators();
+      } else {
+        setIsLoading(false);
+        Swal.fire("Error!", "Something went wrong", "error");
+      }
     } catch (error) {
       console.error("Failed to remove collaborator:", error);
       Swal.fire({
