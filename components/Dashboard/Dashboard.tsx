@@ -29,6 +29,7 @@ import { getSubFromJWT } from "@/app/utils/utils";
 import Swal from "sweetalert2";
 import NotificationsClient from "../NotificationsClient";
 import { Spin } from "antd";
+import { useRouter } from "next/navigation";
 
 const Dashboard = () => {
   const [todoLists, setTodoLists] = useState<any[]>([]);
@@ -39,6 +40,8 @@ const Dashboard = () => {
   // Rename state
   const [renamingList, setRenamingList] = useState<any | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
+
+  const router = useRouter();
 
   const userId = getSubFromJWT(localStorage.getItem("access_token") || "");
 
@@ -175,7 +178,10 @@ const Dashboard = () => {
             {todoLists.map((list) => (
               <Card
                 key={list.id}
-                className="h-full hover:shadow-md transition-shadow"
+                className="h-full hover:shadow-md hover:cursor-pointer transition-shadow"
+                onClick={()=>{
+                  router.push(`/todo/${list.id}`)
+                }}
               >
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                   <Link href={`/todo/${list.id}`}>
